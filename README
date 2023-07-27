@@ -1,0 +1,129 @@
+This directory contains the Sandia Equation of State Model Library
+(SESML). SESML is distributed under the BSD License, see LICENSE.
+
+The library contains models from the International Association for the
+Properties of Water and Steam (IAPWS). Additionally, a general
+interface is defined for accessing these models from other codes, and
+for incorporating other types of models.
+
+This file is broken down into the following sections:
+
+  1. Build and Install
+  2. Usage
+
+--------------------
+1. Build and Install
+--------------------
+
+Build requirements:
+
+  CMake (version 2.8.6 or later recommended)
+  C++ compiler
+  Google C++ Testing Framework (GTest)
+
+Building:
+
+  > cmake -D SESML_GTEST_INCLUDE_DIR:PATH=<...> -D SESML_GTEST_LIB_DIR:PATH=<...>
+  > make
+
+  Note above that one must specify the paths to the GTest headers and
+  libraries when first running cmake.
+
+Testing:
+
+  The unit and verification tests for the library may be run using
+  'make test'. They may take a minute to complete.
+
+Install:
+
+  > make install
+
+  Headers are installed to CMAKE_INSTALL_PREFIX/include/sesml as well
+  as the static library libsesml.a to CMAKE_INSTALL_PREFIX/lib.
+
+--------
+2. Usage
+--------
+
+This section contains the following parts:
+
+2.1 Model usage
+2.2 Error handling
+2.3 Physical units
+2.4 Testing
+
+---------------
+2.1 Model usage
+---------------
+
+The library is coded in C++ and all models are built around the core
+base class 'EOSModel'. This class provides the virtual interface with
+which to access the various models. There are currently two derived
+models:
+
+IAPWS95 -- The IAPWS 95 thermodynamic standard for water
+IAPWS-IF97 -- The IAPWS 97 industrial formulation of IAPWS95
+
+Both of these models include the 2008 IAPWS viscosity and 2011 IAPWS
+thermal conductivity standards in their output variables.
+
+These two models define the P[THSE] and RT getThermalEOS methods for
+state evaluations. See the EOSModel.H file for more information.
+
+Although the models may be constructed directly, a simple factory class
+is provided to unify the process. In particular:
+
+EOSFactory f;
+EOSModel * m = f.getModel(parameters,name);
+
+will create the model specified by name using the given parameters,
+See EOSFactory.H for more information. The parameters for models are
+contained in the Parameters class which is defined in EOSParam.H.
+Floating point, integer, and string parameters may be defined for any
+particular model. In the class header for each model there are enums
+which define these parameters. For the two water models in particular
+there is only the "TEMP_EXTRAP" integer parameter. If non-zero, this
+parameter indicates that the model should not strictly enforce the
+temperature bounds defined by the models.
+
+Thermodynamic data is passed to and from the models in the
+getThermalEOS methods using an EOSData class, see EOSData.H. The
+number of inputs and outputs must be specified when constructing an
+EOSData instance. The number of inputs must be at least two. The
+number of outputs may be taken from the Vars enum in Vars.H.
+
+------------------
+2.2 Error handling
+------------------
+
+The library utilizes the C++ exception capability in reporting
+errors. Any exception raised by the library should be handled by the
+application. The library throws both std::runtime_error and
+std::logic_error. The latter indicates an unrecoverable problem in the
+code. On the other hand, the former runtime_error may be caught and
+recovered from.
+
+------------------
+2.3 Physical units
+------------------
+
+The input to and output from the getThermalEOS routines defined by the
+IAPWS models are all in SI. Note that the internal calculation of the
+IAPWS routines are done in a different system of units, with
+conversion occurring before return from the models. This allows the
+model parametrization to be identical to that defined in the
+standards documents.
+
+-----------
+2.4 Testing
+-----------
+
+Both unit and verification testing are included in the library for the
+models as well as the support classes. They use the Google C++ Testing
+Framework. Each xx.C C++ source file has a corresponding xx_unittest.C
+file that creates a similarly named executable. The IAPWS models are
+tested for correctness against predefined points in their standards
+documents, internal consistency of derivatives of the free energy,
+and consistency between state evaluations in different independent
+variable spaces. Failure of these tests may indicate a significant
+problem in the output of the code.
